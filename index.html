@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>平野部チームタスクボード</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
@@ -13,7 +15,6 @@
   .tab-btn { padding: 5px 16px; border: none; background: transparent; border-radius: 6px; font-size: 13px; cursor: pointer; color: #666; transition: all 0.15s; }
   .tab-btn.active { background: #fff; color: #1a1a1a; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
   .container { max-width: 1800px; margin: 0 auto; padding: 24px 32px; }
-
   .section-label { font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 500; }
   .member-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 32px; }
   .chip { padding: 6px 14px; border: 1px solid #e0e0de; border-radius: 20px; font-size: 13px; cursor: pointer; background: #fff; color: #444; transition: all 0.15s; }
@@ -23,17 +24,14 @@
   .input-sm:focus { border-color: #888; }
   .btn-sm { padding: 7px 14px; border: 1px solid #e0e0de; border-radius: 8px; font-size: 13px; cursor: pointer; background: #fff; white-space: nowrap; }
   .btn-sm:hover { background: #f5f5f3; }
-
   .my-gantt-wrap { background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
   .my-gantt-title { padding: 12px 16px; font-size: 13px; font-weight: 500; border-bottom: 1px solid #f0f0ee; color: #555; }
-
   .project-list { display: flex; flex-direction: column; gap: 12px; }
   .project-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; overflow: hidden; }
   .project-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0ee; }
   .project-name { font-size: 14px; font-weight: 500; }
   .btn-icon { border: none; background: none; cursor: pointer; color: #aaa; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
   .btn-icon:hover { background: #f0f0ee; color: #666; }
-
   .task-row { display: grid; grid-template-columns: 1fr 105px 105px 80px 44px 44px 32px; gap: 6px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f8f8f6; }
   .task-row.done .task-name-text { text-decoration: line-through; color: #aaa; }
   .task-row.done .start-text, .task-row.done .deadline-text { color: #ccc; }
@@ -58,7 +56,6 @@
   select.input-task { cursor: pointer; }
   .add-project-btn { display: flex; align-items: center; gap: 6px; padding: 12px 16px; background: #fff; border: 1px dashed #d0d0ce; border-radius: 12px; cursor: pointer; font-size: 13px; color: #888; width: 100%; justify-content: center; transition: all 0.15s; margin-top: 12px; }
   .add-project-btn:hover { border-color: #aaa; color: #555; }
-
   .gantt-wrap { background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; overflow: hidden; }
   .gantt-scroll { overflow-x: auto; }
   table.gantt { border-collapse: collapse; font-size: 12px; }
@@ -91,15 +88,13 @@
 <div class="header">
   <span class="header-title">平野部チームタスクボード</span>
   <div class="tab-switch">
-    <button class="tab-btn active" onclick="switchTab('member', event)">タスク入力モード</button>
-    <button class="tab-btn" onclick="switchTab('manager', event)">閲覧モード</button>
+    <button class="tab-btn active" onclick="switchTab('member')">タスク入力モード</button>
+    <button class="tab-btn" onclick="switchTab('manager')">閲覧モード</button>
   </div>
 </div>
 
 <div class="container">
-  <!-- メンバー画面 -->
   <div id="view-member">
-    <!-- 名前選択カード -->
     <div style="background:#fff; border:1px solid #e5e5e3; border-radius:12px; padding:20px; margin-bottom:0;">
       <div class="section-label">自分の名前を選んでください（もう一度押すと解除）</div>
       <div class="member-chips" id="member-chips"></div>
@@ -113,8 +108,6 @@
         <div id="add-member-feedback" style="font-size:12px; color:#3b6d11; margin-top:8px; min-height:18px;"></div>
       </div>
     </div>
-
-    <!-- 選択後エリア（名前カードの子として表示） -->
     <div id="member-tasks-area" style="display:none; background:#f0f0ee; border:1px solid #e5e5e3; border-top:none; border-radius:0 0 12px 12px; padding:16px 20px 20px;">
       <div class="my-gantt-wrap">
         <div class="my-gantt-title" id="my-gantt-title">自分のスケジュール</div>
@@ -125,18 +118,14 @@
       <div class="project-list" id="project-list"></div>
       <button class="add-project-btn" style="background:#fff;" onclick="addProject()">＋ プロジェクトを追加</button>
     </div>
-
     <div id="no-member-msg" style="text-align:center; padding:24px; color:#aaa; font-size:14px;">名前を選ぶとスケジュールとタスクが表示されます</div>
   </div>
-
-  <!-- 閲覧モード -->
   <div id="view-manager" style="display:none;">
     <div id="manager-empty" style="text-align:center; padding:40px; color:#aaa; font-size:14px;">まだデータがありません</div>
     <div id="manager-content" style="display:none;"></div>
   </div>
 </div>
 
-<!-- メンバー管理モーダル -->
 <div id="member-modal-bg" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:center; justify-content:center;">
   <div style="background:#fff; border-radius:16px; padding:28px; width:400px; max-width:90vw;">
     <div style="font-size:15px; font-weight:500; margin-bottom:4px;">メンバー管理</div>
@@ -146,10 +135,7 @@
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyCaOZVollkEtJzIaIOSn73K1Kn-XuVocXQ",
   authDomain: "hiranobu-task.firebaseapp.com",
@@ -159,59 +145,50 @@ const firebaseConfig = {
   messagingSenderId: "827673048045",
   appId: "1:827673048045:web:0b0d7619b5468c89b32de4"
 };
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 let allData = {};
 let currentMember = null;
 let pendingSelect = null;
 
-// Firebaseリアルタイム同期
-onValue(ref(db, 'members'), (snapshot) => {
+db.ref('members').on('value', function(snapshot) {
   allData = snapshot.val() || {};
-
-  // 登録待ちの名前があれば選択処理
-  if (pendingSelect !== null) {
-    const name = pendingSelect;
+  if (pendingSelect && allData[pendingSelect]) {
+    var name = pendingSelect;
     pendingSelect = null;
     renderMemberChips();
     activateMember(name);
-    showFeedback(`「${name}」を登録して選択しました`);
+    showFeedback('「' + name + '」を登録して選択しました');
     renderManager();
     return;
   }
-
   renderMemberChips();
   if (currentMember) { renderProjects(); renderMyGantt(); }
   renderManager();
 });
 
-// タブ切り替え
-window.switchTab = function(tab, e) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  e.target.classList.add('active');
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
   document.getElementById('view-member').style.display = tab === 'member' ? '' : 'none';
   document.getElementById('view-manager').style.display = tab === 'manager' ? '' : 'none';
-};
+}
 
-// チップ描画
 function renderMemberChips() {
-  const container = document.getElementById('member-chips');
-  const members = Object.keys(allData);
+  var container = document.getElementById('member-chips');
+  var members = Object.keys(allData);
   if (members.length === 0) {
     container.innerHTML = '<span style="font-size:12px;color:#bbb;">まだメンバーがいません</span>';
     return;
   }
-  container.innerHTML = members.map(m =>
-    `<button class="chip ${m === currentMember ? 'selected' : ''}" onclick="selectMember('${m}')">${m}</button>`
-  ).join('');
+  container.innerHTML = members.map(function(m) {
+    return '<button class="chip ' + (m === currentMember ? 'selected' : '') + '" onclick="selectMember(\'' + m + '\')">' + m + '</button>';
+  }).join('');
 }
 
-// 名前選択・解除
-window.selectMember = function(name) {
+function selectMember(name) {
   if (currentMember === name) {
-    // 解除
     currentMember = null;
     document.getElementById('member-tasks-area').style.display = 'none';
     document.getElementById('no-member-msg').style.display = '';
@@ -219,300 +196,264 @@ window.selectMember = function(name) {
   } else {
     activateMember(name);
   }
-};
+}
 
 function activateMember(name) {
   currentMember = name;
   document.getElementById('no-member-msg').style.display = 'none';
   document.getElementById('member-tasks-area').style.display = '';
-  document.getElementById('my-gantt-title').textContent = `${name} のスケジュール`;
+  document.getElementById('my-gantt-title').textContent = name + ' のスケジュール';
   renderMemberChips();
   renderProjects();
   renderMyGantt();
 }
 
-// 名前追加
-window.addMember = function() {
-  const input = document.getElementById('new-member-input');
-  const name = input.value.trim();
+function addMember() {
+  var input = document.getElementById('new-member-input');
+  var name = input.value.trim();
   if (!name) return;
   input.value = '';
   if (allData[name]) {
-    // すでに存在 → そのまま選択
     activateMember(name);
     renderMemberChips();
-    showFeedback(`「${name}」を選択しました`);
+    showFeedback('「' + name + '」を選択しました');
   } else {
-    // 新規登録 → onValueで反映されてから選択
     pendingSelect = name;
-    set(ref(db, `members/${name}`), { projects: {} });
+    db.ref('members/' + name).set({ projects: {} });
   }
-};
-document.getElementById('new-member-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.addMember();
+}
+
+document.getElementById('new-member-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addMember();
 });
 
 function showFeedback(msg) {
-  const fb = document.getElementById('add-member-feedback');
+  var fb = document.getElementById('add-member-feedback');
   if (!fb) return;
   fb.textContent = msg;
-  setTimeout(() => { fb.textContent = ''; }, 3000);
+  setTimeout(function() { fb.textContent = ''; }, 3000);
 }
 
-// メンバー管理モーダル
-window.openMemberManager = function() {
-  const list = document.getElementById('member-manager-list');
-  const members = Object.keys(allData);
+function openMemberManager() {
+  var list = document.getElementById('member-manager-list');
+  var members = Object.keys(allData);
   if (members.length === 0) {
     list.innerHTML = '<p style="font-size:13px;color:#aaa;text-align:center;">メンバーがいません</p>';
   } else {
-    list.innerHTML = members.map(name => `
-      <div style="border:1px solid #e5e5e3; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:500; margin-bottom:10px;">${name}</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input class="input-sm" id="del-${name}" placeholder="名前を入力" style="font-size:12px; padding:6px 10px;" />
-          <button class="btn-sm" style="color:#e24b4a;border-color:#e24b4a;white-space:nowrap;" onclick="confirmDeleteMember('${name}')">削除</button>
-        </div>
-      </div>`).join('');
+    list.innerHTML = members.map(function(name) {
+      return '<div style="border:1px solid #e5e5e3;border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="font-size:13px;font-weight:500;margin-bottom:10px;">' + name + '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+        '<input class="input-sm" id="del-' + name + '" placeholder="名前を入力" style="font-size:12px;padding:6px 10px;" />' +
+        '<button class="btn-sm" style="color:#e24b4a;border-color:#e24b4a;white-space:nowrap;" onclick="confirmDeleteMember(\'' + name + '\')">削除</button>' +
+        '</div></div>';
+    }).join('');
   }
   document.getElementById('member-modal-bg').style.display = 'flex';
-};
-window.closeMemberManager = function() {
+}
+
+function closeMemberManager() {
   document.getElementById('member-modal-bg').style.display = 'none';
-};
-window.confirmDeleteMember = function(name) {
-  const val = document.getElementById(`del-${name}`).value.trim();
+}
+
+function confirmDeleteMember(name) {
+  var val = document.getElementById('del-' + name).value.trim();
   if (val !== name) { alert('名前が一致しません。正確に入力してください。'); return; }
-  remove(ref(db, `members/${name}`));
+  db.ref('members/' + name).remove();
   if (currentMember === name) {
     currentMember = null;
     document.getElementById('member-tasks-area').style.display = 'none';
     document.getElementById('no-member-msg').style.display = '';
   }
   closeMemberManager();
-};
+}
 
-// プロジェクト描画
 function renderProjects() {
-  const projects = allData[currentMember]?.projects || {};
-  const list = document.getElementById('project-list');
-  list.innerHTML = Object.entries(projects).map(([pid, proj]) => {
-    const tasks = Object.entries(proj.tasks || {});
-    return `
-    <div class="project-card">
-      <div class="project-header">
-        <span class="project-name">${proj.name}</span>
-        <button class="btn-icon" onclick="deleteProject('${pid}')">×</button>
-      </div>
-      <div>
-        ${tasks.map(([tid, task]) => `
-          <div class="task-row ${task.done ? 'done' : ''}" id="row-${tid}">
-            <span class="task-name-text">${task.name}</span>
-            <span class="start-text">${task.startDate || '—'}</span>
-            <span class="deadline-text">${task.deadline || '期限なし'}</span>
-            <span class="weight-badge ${task.done ? 'weight-done' : task.weight === '軽い' ? 'weight-light' : task.weight === '重い' ? 'weight-heavy' : 'weight-normal'}">${task.weight}</span>
-            <button class="btn-done ${task.done ? 'is-done' : ''}" onclick="toggleDone('${pid}','${tid}',${!!task.done})">${task.done ? '完了済' : '完了'}</button>
-            <button class="btn-edit" onclick="startEdit('${pid}','${tid}')">編集</button>
-            <button class="btn-icon" onclick="deleteTask('${pid}','${tid}')">×</button>
-          </div>
-          <div class="edit-task-row" id="edit-${tid}" style="display:none;">
-            <input class="input-task" id="en-${tid}" value="${task.name}" />
-            <input class="input-task" type="week" id="es-${tid}" value="${dateToWeek(task.startDate)}" />
-            <input class="input-task" type="week" id="ed-${tid}" value="${dateToWeek(task.deadline)}" />
-            <select class="input-task" id="ew-${tid}">
-              <option ${task.weight==='軽い'?'selected':''}>軽い</option>
-              <option ${(!task.weight||task.weight==='普通')?'selected':''}>普通</option>
-              <option ${task.weight==='重い'?'selected':''}>重い</option>
-            </select>
-            <button class="btn-save" onclick="saveEdit('${pid}','${tid}')">保存</button>
-            <button class="btn-edit" onclick="cancelEdit('${tid}')">戻す</button>
-            <div></div>
-          </div>
-        `).join('')}
-        <div class="add-task-row">
-          <input class="input-task" id="tn-${pid}" placeholder="タスク名" />
-          <input class="input-task" type="week" id="ts-${pid}" />
-          <input class="input-task" type="week" id="td-${pid}" />
-          <select class="input-task" id="tw-${pid}">
-            <option>軽い</option><option selected>普通</option><option>重い</option>
-          </select>
-          <div></div><div></div>
-          <button class="btn-icon" style="color:#1a1a1a;font-size:20px;" onclick="addTask('${pid}')">＋</button>
-        </div>
-      </div>
-    </div>`;
+  var projects = (allData[currentMember] && allData[currentMember].projects) ? allData[currentMember].projects : {};
+  var list = document.getElementById('project-list');
+  list.innerHTML = Object.entries(projects).map(function(entry) {
+    var pid = entry[0], proj = entry[1];
+    var tasks = Object.entries(proj.tasks || {});
+    return '<div class="project-card">' +
+      '<div class="project-header"><span class="project-name">' + proj.name + '</span>' +
+      '<button class="btn-icon" onclick="deleteProject(\'' + pid + '\')">×</button></div><div>' +
+      tasks.map(function(te) {
+        var tid = te[0], task = te[1];
+        var wc = task.done ? 'weight-done' : task.weight === '軽い' ? 'weight-light' : task.weight === '重い' ? 'weight-heavy' : 'weight-normal';
+        return '<div class="task-row ' + (task.done ? 'done' : '') + '" id="row-' + tid + '">' +
+          '<span class="task-name-text">' + task.name + '</span>' +
+          '<span class="start-text">' + (task.startDate || '—') + '</span>' +
+          '<span class="deadline-text">' + (task.deadline || '期限なし') + '</span>' +
+          '<span class="weight-badge ' + wc + '">' + task.weight + '</span>' +
+          '<button class="btn-done ' + (task.done ? 'is-done' : '') + '" onclick="toggleDone(\'' + pid + '\',\'' + tid + '\',' + (!!task.done) + ')">' + (task.done ? '完了済' : '完了') + '</button>' +
+          '<button class="btn-edit" onclick="startEdit(\'' + pid + '\',\'' + tid + '\')">編集</button>' +
+          '<button class="btn-icon" onclick="deleteTask(\'' + pid + '\',\'' + tid + '\')">×</button></div>' +
+          '<div class="edit-task-row" id="edit-' + tid + '" style="display:none;">' +
+          '<input class="input-task" id="en-' + tid + '" value="' + task.name + '" />' +
+          '<input class="input-task" type="week" id="es-' + tid + '" value="' + dateToWeek(task.startDate) + '" />' +
+          '<input class="input-task" type="week" id="ed-' + tid + '" value="' + dateToWeek(task.deadline) + '" />' +
+          '<select class="input-task" id="ew-' + tid + '">' +
+          '<option ' + (task.weight==='軽い'?'selected':'') + '>軽い</option>' +
+          '<option ' + ((!task.weight||task.weight==='普通')?'selected':'') + '>普通</option>' +
+          '<option ' + (task.weight==='重い'?'selected':'') + '>重い</option></select>' +
+          '<button class="btn-save" onclick="saveEdit(\'' + pid + '\',\'' + tid + '\')">保存</button>' +
+          '<button class="btn-edit" onclick="cancelEdit(\'' + tid + '\')">戻す</button><div></div></div>';
+      }).join('') +
+      '<div class="add-task-row">' +
+      '<input class="input-task" id="tn-' + pid + '" placeholder="タスク名" />' +
+      '<input class="input-task" type="week" id="ts-' + pid + '" />' +
+      '<input class="input-task" type="week" id="td-' + pid + '" />' +
+      '<select class="input-task" id="tw-' + pid + '"><option>軽い</option><option selected>普通</option><option>重い</option></select>' +
+      '<div></div><div></div>' +
+      '<button class="btn-icon" style="color:#1a1a1a;font-size:20px;" onclick="addTask(\'' + pid + '\')">＋</button></div>' +
+      '</div></div>';
   }).join('');
 }
 
-window.addProject = function() {
-  const name = prompt('プロジェクト名を入力してください');
+function addProject() {
+  var name = prompt('プロジェクト名を入力してください');
   if (!name) return;
-  push(ref(db, `members/${currentMember}/projects`), { name, tasks: {} });
-};
-window.deleteProject = function(pid) {
+  db.ref('members/' + currentMember + '/projects').push({ name: name, tasks: {} });
+}
+function deleteProject(pid) {
   if (!confirm('このプロジェクトを削除しますか？')) return;
-  remove(ref(db, `members/${currentMember}/projects/${pid}`));
-};
-window.addTask = function(pid) {
-  const name = document.getElementById(`tn-${pid}`).value.trim();
+  db.ref('members/' + currentMember + '/projects/' + pid).remove();
+}
+function addTask(pid) {
+  var name = document.getElementById('tn-' + pid).value.trim();
   if (!name) return;
-  const startDate = weekToMonday(document.getElementById(`ts-${pid}`).value);
-  const deadline = weekToSunday(document.getElementById(`td-${pid}`).value);
-  const weight = document.getElementById(`tw-${pid}`).value;
-  push(ref(db, `members/${currentMember}/projects/${pid}/tasks`), { name, startDate, deadline, weight, done: false });
-  document.getElementById(`tn-${pid}`).value = '';
-};
-window.deleteTask = function(pid, tid) { remove(ref(db, `members/${currentMember}/projects/${pid}/tasks/${tid}`)); };
-window.toggleDone = function(pid, tid, isDone) {
-  update(ref(db, `members/${currentMember}/projects/${pid}/tasks/${tid}`), { done: !isDone });
-};
-window.startEdit = function(pid, tid) {
-  document.getElementById(`row-${tid}`).style.display = 'none';
-  document.getElementById(`edit-${tid}`).style.display = '';
-};
-window.cancelEdit = function(tid) {
-  document.getElementById(`row-${tid}`).style.display = '';
-  document.getElementById(`edit-${tid}`).style.display = 'none';
-};
-window.saveEdit = function(pid, tid) {
-  const name = document.getElementById(`en-${tid}`).value.trim();
+  var startDate = weekToMonday(document.getElementById('ts-' + pid).value);
+  var deadline = weekToSunday(document.getElementById('td-' + pid).value);
+  var weight = document.getElementById('tw-' + pid).value;
+  db.ref('members/' + currentMember + '/projects/' + pid + '/tasks').push({ name: name, startDate: startDate, deadline: deadline, weight: weight, done: false });
+  document.getElementById('tn-' + pid).value = '';
+}
+function deleteTask(pid, tid) { db.ref('members/' + currentMember + '/projects/' + pid + '/tasks/' + tid).remove(); }
+function toggleDone(pid, tid, isDone) { db.ref('members/' + currentMember + '/projects/' + pid + '/tasks/' + tid).update({ done: !isDone }); }
+function startEdit(pid, tid) { document.getElementById('row-' + tid).style.display = 'none'; document.getElementById('edit-' + tid).style.display = ''; }
+function cancelEdit(tid) { document.getElementById('row-' + tid).style.display = ''; document.getElementById('edit-' + tid).style.display = 'none'; }
+function saveEdit(pid, tid) {
+  var name = document.getElementById('en-' + tid).value.trim();
   if (!name) return;
-  const startDate = weekToMonday(document.getElementById(`es-${tid}`).value);
-  const deadline = weekToSunday(document.getElementById(`ed-${tid}`).value);
-  const weight = document.getElementById(`ew-${tid}`).value;
-  update(ref(db, `members/${currentMember}/projects/${pid}/tasks/${tid}`), { name, startDate, deadline, weight });
-};
+  var startDate = weekToMonday(document.getElementById('es-' + tid).value);
+  var deadline = weekToSunday(document.getElementById('ed-' + tid).value);
+  var weight = document.getElementById('ew-' + tid).value;
+  db.ref('members/' + currentMember + '/projects/' + pid + '/tasks/' + tid).update({ name: name, startDate: startDate, deadline: deadline, weight: weight });
+}
 
-// 自分のガント
 function renderMyGantt() {
   if (!currentMember || !allData[currentMember]) return;
-  const rows = [];
-  Object.values(allData[currentMember].projects || {}).forEach(proj => {
-    Object.values(proj.tasks || {}).forEach(task => rows.push({ project: proj.name, task }));
+  var rows = [];
+  Object.values(allData[currentMember].projects || {}).forEach(function(proj) {
+    Object.values(proj.tasks || {}).forEach(function(task) { rows.push({ project: proj.name, task: task }); });
   });
   document.getElementById('my-gantt-table').innerHTML = buildGanttHTML(rows);
-  setTimeout(() => scrollToThisWeek('my-gantt-scroll'), 50);
+  setTimeout(function() { scrollToThisWeek('my-gantt-scroll'); }, 50);
 }
 
-// マネージャー画面
 function renderManager() {
-  const content = document.getElementById('manager-content');
-  const empty = document.getElementById('manager-empty');
-  const members = Object.entries(allData);
+  var content = document.getElementById('manager-content');
+  var empty = document.getElementById('manager-empty');
+  var members = Object.entries(allData);
   if (members.length === 0) { empty.style.display = ''; content.style.display = 'none'; return; }
   empty.style.display = 'none'; content.style.display = '';
-  content.innerHTML = members.map(([member, mdata], mi) => {
-    const rows = [];
-    Object.values(mdata.projects || {}).forEach(proj => {
-      Object.values(proj.tasks || {}).forEach(task => rows.push({ project: proj.name, task }));
+  content.innerHTML = members.map(function(entry, mi) {
+    var member = entry[0], mdata = entry[1];
+    var rows = [];
+    Object.values(mdata.projects || {}).forEach(function(proj) {
+      Object.values(proj.tasks || {}).forEach(function(task) { rows.push({ project: proj.name, task: task }); });
     });
-    return `
-      <div class="member-group">
-        <div class="member-group-header">${member}</div>
-        <div class="gantt-wrap">
-          <div class="gantt-scroll" id="mgr-scroll-${mi}">
-            <table class="gantt">${buildGanttHTML(rows)}</table>
-          </div>
-        </div>
-      </div>`;
+    return '<div class="member-group"><div class="member-group-header">' + member + '</div>' +
+      '<div class="gantt-wrap"><div class="gantt-scroll" id="mgr-scroll-' + mi + '">' +
+      '<table class="gantt">' + buildGanttHTML(rows) + '</table></div></div></div>';
   }).join('');
-  setTimeout(() => {
-    members.forEach((_, mi) => scrollToThisWeek(`mgr-scroll-${mi}`));
+  setTimeout(function() {
+    members.forEach(function(_, mi) { scrollToThisWeek('mgr-scroll-' + mi); });
   }, 80);
 }
 
 function buildGanttHTML(rows) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = fmtDate(today);
-  function getMonday(d) {
-    const day = d.getDay(), diff = day === 0 ? -6 : 1 - day;
-    const m = new Date(d); m.setDate(d.getDate() + diff); m.setHours(0,0,0,0); return m;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayStr = fmtDate(today);
+  var base = getMonday(today); base.setDate(base.getDate() - 14);
+  var weeks = [];
+  for (var i = 0; i < 24; i++) {
+    var mon = new Date(base); mon.setDate(base.getDate() + i * 7);
+    var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    weeks.push({ mon: mon, sun: sun });
   }
-  const base = getMonday(today); base.setDate(base.getDate() - 14);
-  const weeks = [];
-  for (let i = 0; i < 24; i++) {
-    const mon = new Date(base); mon.setDate(base.getDate() + i * 7);
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-    weeks.push({ mon, sun });
-  }
-  const monthGroups = [];
-  weeks.forEach(({ mon }) => {
-    const ym = `${mon.getFullYear()}-${mon.getMonth()}`;
+  var monthGroups = [];
+  weeks.forEach(function(w) {
+    var ym = w.mon.getFullYear() + '-' + w.mon.getMonth();
     if (!monthGroups.length || monthGroups[monthGroups.length-1].key !== ym)
-      monthGroups.push({ key: ym, label: `${mon.getFullYear()}年${mon.getMonth()+1}月`, count: 1 });
+      monthGroups.push({ key: ym, label: w.mon.getFullYear() + '年' + (w.mon.getMonth()+1) + '月', count: 1 });
     else monthGroups[monthGroups.length-1].count++;
   });
-
-  const monthRow = `<tr><th class="gcol-project"></th><th class="gcol-task"></th>${monthGroups.map(mg => `<th class="gantt-head-month" colspan="${mg.count}">${mg.label}</th>`).join('')}</tr>`;
-  const weekRow = `<tr><th class="gcol-project">プロジェクト</th><th class="gcol-task">タスク名</th>${weeks.map(({ mon, sun }) => {
-    const isThis = fmtDate(mon) <= todayStr && todayStr <= fmtDate(sun);
-    return `<th class="gantt-head-week ${isThis ? 'this-week' : ''}">${mon.getMonth()+1}/${mon.getDate()}</th>`;
-  }).join('')}</tr>`;
-
-  const byProject = {};
-  rows.forEach(r => { if (!byProject[r.project]) byProject[r.project] = []; byProject[r.project].push(r.task); });
-
-  let dataRows = '';
-  Object.entries(byProject).forEach(([projName, tasks]) => {
-    dataRows += `<tr class="proj-separator"><td colspan="${2 + weeks.length}">${projName}</td></tr>`;
-    tasks.forEach(task => {
-      const barClass = task.done ? 'bar-done' : task.weight === '軽い' ? 'bar-light' : task.weight === '重い' ? 'bar-heavy' : 'bar-normal';
+  var monthRow = '<tr><th class="gcol-project"></th><th class="gcol-task"></th>' +
+    monthGroups.map(function(mg) { return '<th class="gantt-head-month" colspan="' + mg.count + '">' + mg.label + '</th>'; }).join('') + '</tr>';
+  var weekRow = '<tr><th class="gcol-project">プロジェクト</th><th class="gcol-task">タスク名</th>' +
+    weeks.map(function(w) {
+      var isThis = fmtDate(w.mon) <= todayStr && todayStr <= fmtDate(w.sun);
+      return '<th class="gantt-head-week ' + (isThis ? 'this-week' : '') + '">' + (w.mon.getMonth()+1) + '/' + w.mon.getDate() + '</th>';
+    }).join('') + '</tr>';
+  var byProject = {};
+  rows.forEach(function(r) { if (!byProject[r.project]) byProject[r.project] = []; byProject[r.project].push(r.task); });
+  var dataRows = '';
+  Object.entries(byProject).forEach(function(pe) {
+    var projName = pe[0], tasks = pe[1];
+    dataRows += '<tr class="proj-separator"><td colspan="' + (2 + weeks.length) + '">' + projName + '</td></tr>';
+    tasks.forEach(function(task) {
+      var barClass = task.done ? 'bar-done' : task.weight === '軽い' ? 'bar-light' : task.weight === '重い' ? 'bar-heavy' : 'bar-normal';
       if (!task.startDate || !task.deadline) {
-        dataRows += `<tr><td class="gcol-project" style="font-size:11px;color:#888;font-weight:400;"></td><td class="gcol-task"><span class="gantt-task-name ${task.done ? 'done' : ''}">${task.name}</span></td><td colspan="${weeks.length}" style="padding:0 12px;font-size:11px;color:#bbb;">日付未設定</td></tr>`;
+        dataRows += '<tr><td class="gcol-project" style="font-size:11px;color:#888;font-weight:400;"></td><td class="gcol-task"><span class="gantt-task-name ' + (task.done?'done':'') + '">' + task.name + '</span></td><td colspan="' + weeks.length + '" style="padding:0 12px;font-size:11px;color:#bbb;">日付未設定</td></tr>';
         return;
       }
-      const cells = weeks.map(({ mon, sun }) => {
-        const monStr = fmtDate(mon), sunStr = fmtDate(sun);
-        const isThis = monStr <= todayStr && todayStr <= sunStr;
-        const inRange = task.startDate <= sunStr && task.deadline >= monStr;
-        const isStart = inRange && task.startDate >= monStr && task.startDate <= sunStr;
-        const isEnd = inRange && task.deadline >= monStr && task.deadline <= sunStr;
-        const isSingle = isStart && isEnd;
-        let bar = '';
-        if (inRange) bar = `<div class="gantt-bar ${barClass} ${isSingle ? 'bar-single' : isStart ? 'bar-start' : isEnd ? 'bar-end' : 'bar-mid'}"></div>`;
-        return `<td class="gantt-cell ${isThis ? 'this-week' : ''}">${bar}</td>`;
+      var cells = weeks.map(function(w) {
+        var monStr = fmtDate(w.mon), sunStr = fmtDate(w.sun);
+        var isThis = monStr <= todayStr && todayStr <= sunStr;
+        var inRange = task.startDate <= sunStr && task.deadline >= monStr;
+        var isStart = inRange && task.startDate >= monStr && task.startDate <= sunStr;
+        var isEnd = inRange && task.deadline >= monStr && task.deadline <= sunStr;
+        var isSingle = isStart && isEnd;
+        var bar = '';
+        if (inRange) bar = '<div class="gantt-bar ' + barClass + ' ' + (isSingle?'bar-single':isStart?'bar-start':isEnd?'bar-end':'bar-mid') + '"></div>';
+        return '<td class="gantt-cell ' + (isThis?'this-week':'') + '">' + bar + '</td>';
       }).join('');
-      dataRows += `<tr><td class="gcol-project" style="font-size:11px;color:#888;font-weight:400;"></td><td class="gcol-task"><span class="gantt-task-name ${task.done ? 'done' : ''}">${task.name}</span></td>${cells}</tr>`;
+      dataRows += '<tr><td class="gcol-project" style="font-size:11px;color:#888;font-weight:400;"></td><td class="gcol-task"><span class="gantt-task-name ' + (task.done?'done':'') + '">' + task.name + '</span></td>' + cells + '</tr>';
     });
   });
-
-  if (rows.length === 0) {
-    dataRows = `<tr><td class="gcol-project"></td><td class="gcol-task" style="font-size:12px;color:#bbb;padding:12px;">タスクなし</td><td colspan="${weeks.length}"></td></tr>`;
-  }
+  if (rows.length === 0) dataRows = '<tr><td class="gcol-project"></td><td class="gcol-task" style="font-size:12px;color:#bbb;padding:12px;">タスクなし</td><td colspan="' + weeks.length + '"></td></tr>';
   return monthRow + weekRow + dataRows;
 }
 
+function getMonday(d) { var day = d.getDay(), diff = day === 0 ? -6 : 1 - day; var m = new Date(d); m.setDate(d.getDate() + diff); m.setHours(0,0,0,0); return m; }
 function scrollToThisWeek(scrollId) {
-  const el = document.getElementById(scrollId);
-  if (!el) return;
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = fmtDate(today);
-  function getMonday(d) { const day = d.getDay(), diff = day === 0 ? -6 : 1 - day; const m = new Date(d); m.setDate(d.getDate() + diff); m.setHours(0,0,0,0); return m; }
-  const base = getMonday(today); base.setDate(base.getDate() - 14);
-  for (let i = 0; i < 24; i++) {
-    const mon = new Date(base); mon.setDate(base.getDate() + i * 7);
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  var el = document.getElementById(scrollId); if (!el) return;
+  var today = new Date(); today.setHours(0,0,0,0); var todayStr = fmtDate(today);
+  var base = getMonday(today); base.setDate(base.getDate() - 14);
+  for (var i = 0; i < 24; i++) {
+    var mon = new Date(base); mon.setDate(base.getDate() + i * 7);
+    var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
     if (fmtDate(mon) <= todayStr && todayStr <= fmtDate(sun)) { el.scrollLeft = Math.max(0, i * 56 - 370); break; }
   }
 }
-
-function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function weekToMonday(w) {
   if (!w) return '';
-  const [year, week] = w.split('-W').map(Number);
-  const jan4 = new Date(year, 0, 4);
-  const startW1 = new Date(jan4); startW1.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
-  const mon = new Date(startW1); mon.setDate(startW1.getDate() + (week - 1) * 7);
+  var parts = w.split('-W'); var year = parseInt(parts[0]), week = parseInt(parts[1]);
+  var jan4 = new Date(year, 0, 4);
+  var startW1 = new Date(jan4); startW1.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+  var mon = new Date(startW1); mon.setDate(startW1.getDate() + (week - 1) * 7);
   return fmtDate(mon);
 }
-function weekToSunday(w) { if (!w) return ''; const m = new Date(weekToMonday(w)); m.setDate(m.getDate() + 6); return fmtDate(m); }
+function weekToSunday(w) { if (!w) return ''; var m = new Date(weekToMonday(w)); m.setDate(m.getDate() + 6); return fmtDate(m); }
 function dateToWeek(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr); d.setHours(0,0,0,0);
-  const day = d.getDay() || 7; d.setDate(d.getDate() + 4 - day);
-  const yearStart = new Date(d.getFullYear(), 0, 1);
-  const week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+  var d = new Date(dateStr); d.setHours(0,0,0,0);
+  var day = d.getDay() || 7; d.setDate(d.getDate() + 4 - day);
+  var yearStart = new Date(d.getFullYear(), 0, 1);
+  var week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return d.getFullYear() + '-W' + String(week).padStart(2,'0');
 }
 </script>
 </body>
